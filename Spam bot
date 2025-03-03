@@ -1,0 +1,10 @@
+import subprocess
+import time
+
+# Install pyinstaller (if needed)
+subprocess.run(["pip", "install", "pyinstaller"])
+
+# Continuously open Notepad every 3 seconds
+while True:
+    subprocess.Popen(["C:\\Windows\\System32\\notepad.exe"])
+    time.sleep(1)

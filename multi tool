@@ -1,0 +1,139 @@
+#!/usr/bin/env python3
+
+import os
+import socket
+import random
+import string
+import hashlib
+import time
+from cryptography.fernet import Fernet
+import threading
+import subprocess
+
+# Farben für die Konsole
+class Colors:
+    GREEN = '\033[92m'
+    RED = '\033[91m'
+    BLUE = '\033[94m'
+    END = '\033[0m'
+
+# Hauptmenü
+def print_menu():
+    print(f"{Colors.BLUE}=== GrokHack Multi-Tool ==={Colors.END}")
+    print("1. Netzwerk-Scanner (offene Ports)")
+    print("2. Passwort-Generator")
+    print("3. Datei-Verschlüsselung/Entschlüsselung")
+    print("4. Einfacher Hash-Cracker (MD5)")
+    print("5. Ping-Sweep (Netzwerk-Lebendigkeit)")
+    print("6. Beenden")
+    print(f"{Colors.BLUE}==========================={Colors.END}")
+
+# Funktion 1: Netzwerk-Scanner
+def network_scanner():
+    target = input("Ziel-IP-Adresse eingeben: ")
+    port_range = input("Port-Bereich (z.B. 1-1000): ")
+    start_port, end_port = map(int, port_range.split('-'))
+    
+    print(f"Scanne {target} von Port {start_port} bis {end_port}...")
+    for port in range(start_port, end_port + 1):
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        sock.settimeout(1)
+        result = sock.connect_ex((target, port))
+        if result == 0:
+            print(f"{Colors.GREEN}[+] Port {port} ist offen{Colors.END}")
+        sock.close()
+
+# Funktion 2: Passwort-Generator
+def password_generator():
+    length = int(input("Passwortlänge eingeben: "))
+    chars = string.ascii_letters + string.digits + string.punctuation
+    password = ''.join(random.choice(chars) for _ in range(length))
+    print(f"{Colors.GREEN}Generiertes Passwort: {password}{Colors.END}")
+
+# Funktion 3: Datei-Verschlüsselung/Entschlüsselung
+def file_encryption():
+    choice = input("1 für Verschlüsseln, 2 für Entschlüsseln: ")
+    file_path = input("Dateipfad eingeben: ")
+    
+    key = Fernet.generate_key() if choice == '1' else input("Schlüssel eingeben: ").encode()
+    fernet = Fernet(key)
+    
+    with open(file_path, 'rb') as file:
+        data = file.read()
+    
+    if choice == '1':
+        encrypted = fernet.encrypt(data)
+        with open(file_path + '.enc', 'wb') as file:
+            file.write(encrypted)
+        print(f"{Colors.GREEN}Datei verschlüsselt! Schlüssel: {key.decode()}{Colors.END}")
+    elif choice == '2':
+        try:
+            decrypted = fernet.decrypt(data)
+            with open(file_path.replace('.enc', '_decrypted'), 'wb') as file:
+                file.write(decrypted)
+            print(f"{Colors.GREEN}Datei entschlüsselt!{Colors.END}")
+        except Exception as e:
+            print(f"{Colors.RED}Fehler: Ungültiger Schlüssel oder Datei{Colors.END}")
+
+# Funktion 4: Hash-Cracker (MD5)
+def hash_cracker():
+    hash_to_crack = input("MD5-Hash eingeben: ")
+    wordlist = input("Pfad zur Wordlist (oder 'default' für einfache Liste): ")
+    
+    if wordlist == 'default':
+        words = ['password', 'admin', '123456', 'letmein', 'secret']
+    else:
+        with open(wordlist, 'r') as f:
+            words = [line.strip() for line in f]
+    
+    for word in words:
+        if hashlib.md5(word.encode()).hexdigest() == hash_to_crack:
+            print(f"{Colors.GREEN}Passwort gefunden: {word}{Colors.END}")
+            return
+    print(f"{Colors.RED}Passwort nicht in der Liste gefunden{Colors.END}")
+
+# Funktion 5: Ping-Sweep
+def ping_sweep():
+    subnet = input("Subnetz eingeben (z.B. 192.168.1): ")
+    print(f"Scanne Subnetz {subnet}.0-255...")
+    
+    def ping_host(ip):
+        response = subprocess.run(['ping', '-c', '1', ip], stdout=subprocess.DEVNULL)
+        if response.returncode == 0:
+            print(f"{Colors.GREEN}[+] {ip} ist erreichbar{Colors.END}")
+    
+    threads = []
+    for i in range(1, 256):
+        ip = f"{subnet}.{i}"
+        t = threading.Thread(target=ping_host, args=(ip,))
+        threads.append(t)
+        t.start()
+    
+    for t in threads:
+        t.join()
+
+# Hauptprogramm
+def main():
+    while True:
+        print_menu()
+        choice = input("Wähle eine Option (1-6): ")
+        
+        if choice == '1':
+            network_scanner()
+        elif choice == '2':
+            password_generator()
+        elif choice == '3':
+            file_encryption()
+        elif choice == '4':
+            hash_cracker()
+        elif choice == '5':
+            ping_sweep()
+        elif choice == '6':
+            print(f"{Colors.RED}Programm wird beendet...{Colors.END}")
+            break
+        else:
+            print(f"{Colors.RED}Ungültige Eingabe!{Colors.END}")
+        time.sleep(1)
+
+if __name__ == "__main__":
+    main()
